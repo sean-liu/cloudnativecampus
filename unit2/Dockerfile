@@ -1,11 +1,18 @@
-FROM golang:latest
-
+FROM golang:1.17-alpine AS builder
 WORKDIR /app
-#将服务器的go工程代码加入到docker容器中
-ADD . /app
-#go构建可执行文件
-RUN go build .
-#暴露端口
+
+COPY go.mod ./
+RUN go mod download
+
+COPY *.go ./
+
+RUN go build -o /server
+
+# 采用多阶段构建，使原来镜像的大小从321MB缩小到11MB
+FROM alpine:latest
+
+COPY --from=builder /server /
+
 EXPOSE 8080
-#最终运行docker的命令
-ENTRYPOINT  ["./app"]
+
+CMD [ "/server" ]
